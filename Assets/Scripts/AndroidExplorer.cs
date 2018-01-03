@@ -35,52 +35,7 @@ public class AndroidExplorer : MonoBehaviour
         Input.gyro.enabled = true;
         Input.compass.enabled = true;
 
-        Input.location.Start();
-
-        // First, check if user has location service enabled
-        //if (!Input.location.isEnabledByUser)
-        //{
-        //    Debug.Log("Position not enabled");
-        //    m_data = ("Location disabled");
-        //    yield break;
-        //}
-        //else { Debug.Log("Position enabled"); m_data = "position enabled"; }
-
-        //// Start service before querying location
-        //Debug.Log("Start location service");
-        //Input.location.Start();
-
-        //// Wait until service initializes
-        //int maxWait = 20;
-        //while (Input.location.status == LocationServiceStatus.Initializing && maxWait > 0)
-        //{
-        //    yield return new WaitForSeconds(1);
-        //    maxWait--;
-        //    Debug.Log(maxWait);
-        //    m_data = maxWait.ToString();
-        //}
-
-        //// Service didn't initialize in 20 seconds
-        //if (maxWait < 1)
-        //{
-        //    Debug.Log("Timed out");
-        //    yield break;
-        //}
-
-        //// Connection has failed
-        //if (Input.location.status == LocationServiceStatus.Failed)
-        //{
-        //    Debug.Log("Unable to determine device location");
-        //    yield break;
-        //}
-        //else
-        //{
-        //    // Access granted and location value could be retrieved
-        //    Debug.Log("Location: " + Input.location.lastData.latitude + " " + Input.location.lastData.longitude + " " + Input.location.lastData.altitude + " " + Input.location.lastData.horizontalAccuracy + " " + Input.location.lastData.timestamp);
-        //}
-
-        // Stop service if there is no need to query location updates continuously
-        ////Input.location.Stop();
+        Input.location.Start(2f, 2f);
     }
 	
 	void Update()
@@ -96,21 +51,35 @@ public class AndroidExplorer : MonoBehaviour
 #endif
         if (m_isPlayerPressing)
         {
-            Touch touch = Input.GetTouch(0); // get first touch since touch count is greater than zero
+            if (Input.touchCount == 1)
+            {
+                Touch touch = Input.GetTouch(0); // get first touch since touch count is greater than zero
 
-            if (touch.phase == TouchPhase.Stationary || touch.phase == TouchPhase.Moved)
-            {
-                // get the touch position from the screen touch to world point
-                Vector3 touchedPos = Camera.main.ScreenToWorldPoint(new Vector3(touch.position.x, touch.position.y, 10));
-                // lerp and set the position of the current object to that of the touch, but smoothly over time.
-                transform.position = Vector3.Lerp(transform.position, touchedPos, Time.deltaTime);
+                if (touch.phase == TouchPhase.Stationary || touch.phase == TouchPhase.Moved)
+                {
+                    // get the touch position from the screen touch to world point
+                    Vector3 touchedPos = Camera.main.ScreenToWorldPoint(new Vector3(touch.position.x, touch.position.y, 10));
+                    // lerp and set the position of the current object to that of the touch, but smoothly over time.
+                    transform.position = Vector3.Lerp(transform.position, touchedPos, Time.deltaTime);
+                }
+                if (m_released)
+                {
+                    m_released = false;
+                    Color newColor = new Color(Random.value, Random.value, Random.value, 1.0f);
+                    m_renderer.material.color = newColor;
+                }
             }
-            if (m_released)
+            else if (Input.touchCount == 2)
             {
-                m_released = false;
-                Color newColor = new Color(Random.value, Random.value, Random.value, 1.0f);
-                m_renderer.material.color = newColor;
+                if(m_distance > 0.001f)
+                {
+                    float distance_temp;
+                    distance_temp = Vector2.Distance(Input.GetTouch(0).position, Input.GetTouch(1).position);
+                    m_transform.localScale = m_transform.localScale * (distance_temp / m_distance);
+                }
+                m_distance = Vector2.Distance(Input.GetTouch(0).position, Input.GetTouch(1).position);
             }
+            if (Input.touchCount != 2) m_distance = 0f;
         }
         else m_released = true;
 
@@ -119,7 +88,7 @@ public class AndroidExplorer : MonoBehaviour
         RotateY(Input.gyro.rotationRateUnbiased.y);
         RotateZ(Input.gyro.rotationRateUnbiased.z);
         
-        PrintInfo(Input.location.isEnabledByUser.ToString());
+        PrintInfo(m_distance.ToString());
     }
 
 
@@ -161,6 +130,7 @@ public class AndroidExplorer : MonoBehaviour
     private bool m_isPlayerPressing;
     private bool m_released = true;
     private int m_touchCount;
+    private float m_distance = 0f;
     private Renderer m_renderer;
     private Transform m_transform;
 
